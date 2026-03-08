@@ -46,11 +46,15 @@ echo "==> Prisma generate..."
 cd "$APP_DIR/backend"
 npx prisma generate
 
-echo "==> Running database migrations..."
-npx prisma migrate deploy 2>/dev/null || echo "    (no migrations or use db push for first-time)"
+echo "==> Running database schema..."
+if [ -d "$APP_DIR/backend/prisma/migrations" ] && [ "$(ls -A "$APP_DIR/backend/prisma/migrations" 2>/dev/null)" ]; then
+  npx prisma migrate deploy 2>/dev/null || npx prisma db push --accept-data-loss
+else
+  npx prisma db push --accept-data-loss
+fi
 
 echo "==> Building backend..."
-npm run build
+cd "$APP_DIR/backend" && npx tsc && cd "$APP_DIR"
 
 echo "==> Building frontend..."
 cd "$APP_DIR/frontend"
