@@ -24,22 +24,21 @@ else
 fi
 
 export PORT="$BACKEND_PORT"
-export NODE_ENV=production
 # Frontend build needs these at build time (set in backend/.env for production URLs)
 export NEXT_PUBLIC_API_URL="${NEXT_PUBLIC_API_URL:-http://localhost:$BACKEND_PORT}"
 export NEXT_PUBLIC_SOCKET_URL="${NEXT_PUBLIC_SOCKET_URL:-http://localhost:$BACKEND_PORT}"
 
-# Install dependencies
+# Install dependencies (include devDependencies so TypeScript/Next build tools are available)
 echo "==> Installing root dependencies..."
 npm install --omit=dev
 
-echo "==> Installing backend dependencies..."
+echo "==> Installing backend dependencies (including dev for build)..."
 cd "$APP_DIR/backend"
-npm install
+npm install --include=dev
 
-echo "==> Installing frontend dependencies..."
+echo "==> Installing frontend dependencies (including dev for build)..."
 cd "$APP_DIR/frontend"
-npm install
+npm install --include=dev
 
 # Database & build
 echo "==> Prisma generate..."
@@ -54,13 +53,14 @@ else
 fi
 
 echo "==> Building backend..."
-cd "$APP_DIR/backend" && npx tsc && cd "$APP_DIR"
+cd "$APP_DIR/backend" && ./node_modules/.bin/tsc && cd "$APP_DIR"
 
 echo "==> Building frontend..."
 cd "$APP_DIR/frontend"
 npm run build
 
-# PM2: restart or start
+# PM2: restart or start (NODE_ENV=production for runtime)
+export NODE_ENV=production
 echo "==> Restarting PM2 processes..."
 mkdir -p "$APP_DIR/logs"
 cd "$APP_DIR"
@@ -68,7 +68,7 @@ cd "$APP_DIR"
 if command -v pm2 >/dev/null 2>&1; then
   if [ -f "$APP_DIR/ecosystem.config.cjs" ]; then
     pm2 delete auction-backend auction-frontend 2>/dev/null || true
-    BACKEND_PORT="$BACKEND_PORT" FRONTEND_PORT="$FRONTEND_PORT" pm2 start ecosystem.config.cjs
+    BACKEND_PORT="$BACKEND_PORT" FRONTEND_PORT="$FRONTEND_PORT" NODE_ENV=production pm2 start ecosystem.config.cjs
   else
     pm2 delete auction-backend 2>/dev/null || true
     pm2 start backend/dist/index.js --name auction-backend -i 1 --cwd "$APP_DIR/backend" --update-env
