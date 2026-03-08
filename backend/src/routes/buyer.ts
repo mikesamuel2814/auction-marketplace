@@ -1,5 +1,6 @@
 import { Router, Response } from 'express';
 import { z } from 'zod';
+import type { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { Decimal } from '@prisma/client/runtime/library';
@@ -12,7 +13,11 @@ const saveSearchSchema = z.object({ query: z.string().min(1), filters: z.record(
 router.post('/saved-searches', authenticate, async (req: AuthRequest, res: Response) => {
   const body = saveSearchSchema.parse(req.body);
   const saved = await prisma.savedSearch.create({
-    data: { userId: req.authUser!.userId, query: body.query, filters: body.filters ?? undefined },
+    data: {
+      userId: req.authUser!.userId,
+      query: body.query,
+      filters: (body.filters ?? undefined) as Prisma.InputJsonValue | undefined,
+    },
   });
   return res.status(201).json(saved);
 });
