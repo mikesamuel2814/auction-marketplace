@@ -19,6 +19,7 @@ import adminRoutes from './routes/admin';
 import categoryRoutes from './routes/categories';
 import orderRoutes from './routes/orders';
 import disputeRoutes from './routes/disputes';
+import buyerRoutes from './routes/buyer';
 import { initSocket } from './socket';
 import { processEndedAuctions, startUpcomingAuctions } from './services/auctionClose';
 import { errorHandler } from './middleware/errorHandler';
@@ -53,6 +54,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/disputes', disputeRoutes);
+app.use('/api/buyer', buyerRoutes);
 
 app.get('/health', (_req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
 

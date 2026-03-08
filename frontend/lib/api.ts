@@ -91,9 +91,11 @@ export const paymentsApi = {
   confirmDelivery: (orderId: string) =>
     api<{ message: string }>(`/api/payments/${orderId}/confirm-delivery`, { method: 'POST' }),
   orders: () => api<{ orders: Order[] }>('/api/payments/orders'),
-  sales: () => api<{ sales: { id: string; amount: number; status: string; auctionTitle: string; paidAt: string | null }[] }>('/api/payments/sales'),
+  sales: () => api<{ sales: { id: string; amount: number; status: string; auctionTitle: string; paidAt: string | null; sellerAmount: number }[] }>('/api/payments/sales'),
   ship: (orderId: string) =>
     api<{ message: string }>(`/api/payments/${orderId}/ship`, { method: 'POST' }),
+  refund: (orderId: string) =>
+    api<{ message: string; orderId: string }>(`/api/payments/${orderId}/refund`, { method: 'POST' }),
 };
 
 export const watchlistApi = {
@@ -105,6 +107,44 @@ export const watchlistApi = {
     }),
   remove: (auctionId: string) =>
     api<{ message: string }>(`/api/watchlist/${auctionId}`, { method: 'DELETE' }),
+};
+
+export const buyerApi = {
+  savedSearches: {
+    list: () => api<{ items: { id: string; query: string; filters?: Record<string, unknown>; createdAt: string }[] }>('/api/buyer/saved-searches'),
+    create: (query: string, filters?: Record<string, unknown>) =>
+      api<{ id: string }>('/api/buyer/saved-searches', {
+        method: 'POST',
+        body: JSON.stringify({ query, filters }),
+      }),
+    remove: (id: string) =>
+      api<{ message: string }>(`/api/buyer/saved-searches/${id}`, { method: 'DELETE' }),
+  },
+  priceAlerts: {
+    list: () =>
+      api<{
+        items: { id: string; auctionId: string; maxPrice: number; notified: boolean; auction: { id: string; title: string; currentBid: number; endTime: string; status: string } }[];
+      }>('/api/buyer/price-alerts'),
+    create: (auctionId: string, maxPrice: number) =>
+      api<{ id: string; auctionId: string; maxPrice: number; notified: boolean }>('/api/buyer/price-alerts', {
+        method: 'POST',
+        body: JSON.stringify({ auctionId, maxPrice }),
+      }),
+    remove: (id: string) =>
+      api<{ message: string }>(`/api/buyer/price-alerts/${id}`, { method: 'DELETE' }),
+  },
+  recentlyViewed: {
+    list: (limit?: number) =>
+      api<{ items: { id: string; viewedAt: string; auction: { id: string; title: string; currentBid: number; endTime: string; status: string; image?: string } }[] }>(
+        '/api/buyer/recently-viewed',
+        { params: limit ? { limit } : undefined }
+      ),
+    record: (auctionId: string) =>
+      api<{ message: string }>('/api/buyer/recently-viewed', {
+        method: 'POST',
+        body: JSON.stringify({ auctionId }),
+      }),
+  },
 };
 
 export const notificationsApi = {

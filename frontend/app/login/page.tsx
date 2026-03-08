@@ -34,7 +34,7 @@ export default function LoginPage() {
 
   return (
     <div className="container max-w-md py-12">
-      <Card>
+      <Card className="shadow-gm-medium">
         <CardHeader>
           <CardTitle>Login</CardTitle>
           <CardDescription>Sign in to your BidHub account</CardDescription>
@@ -64,7 +64,7 @@ export default function LoginPage() {
                 className="mt-1"
               />
             </div>
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button type="submit" className="w-full rounded-xl" disabled={loading}>
               {loading ? 'Signing in...' : 'Sign in'}
             </Button>
             <p className="text-sm text-center text-muted-foreground">

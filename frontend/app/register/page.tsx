@@ -36,7 +36,7 @@ export default function RegisterPage() {
 
   return (
     <div className="container max-w-md py-12">
-      <Card>
+      <Card className="shadow-gm-medium">
         <CardHeader>
           <CardTitle>Create account</CardTitle>
           <CardDescription>Join BidHub as a buyer or seller</CardDescription>
@@ -100,7 +100,7 @@ export default function RegisterPage() {
                 </label>
               </div>
             </div>
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button type="submit" className="w-full rounded-xl" disabled={loading}>
               {loading ? 'Creating account...' : 'Register'}
             </Button>
             <p className="text-sm text-center text-muted-foreground">

@@ -262,34 +262,39 @@ router.get('/me', authenticate, (req: AuthRequest, res: Response) => {
   return res.json({ userId: req.authUser!.userId, email: req.authUser!.email, role: req.authUser!.role });
 });
 
-// Google OAuth
-router.get(
-  '/google',
-  passport.authenticate('google', { scope: ['profile', 'email'], session: false })
-);
+// Google OAuth (only when configured)
+if (config.google.clientId && config.google.clientSecret) {
+  router.get(
+    '/google',
+    passport.authenticate('google', { scope: ['profile', 'email'], session: false })
+  );
 
-router.get(
-  '/google/callback',
-  passport.authenticate('google', { session: false }),
-  async (req: Request, res: Response) => {
-    const user = (req as unknown as { user: { id: string; email: string; name: string; role: Role } }).user;
-    if (!user) return res.redirect(`${config.frontendUrl}/login?error=auth`);
-    const { accessToken, refreshToken } = generateTokens({
-      userId: user.id,
-      email: user.email,
-      role: user.role,
-    });
-    await prisma.refreshToken.create({
-      data: {
-        token: refreshToken,
+  router.get(
+    '/google/callback',
+    passport.authenticate('google', { session: false }),
+    async (req: Request, res: Response) => {
+      const user = (req as unknown as { user: { id: string; email: string; name: string; role: Role } }).user;
+      if (!user) return res.redirect(`${config.frontendUrl}/login?error=auth`);
+      const { accessToken, refreshToken } = generateTokens({
         userId: user.id,
-        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-      },
-    });
-    res.redirect(
-      `${config.frontendUrl}/auth/callback?accessToken=${accessToken}&refreshToken=${refreshToken}`
-    );
-  }
-);
+        email: user.email,
+        role: user.role,
+      });
+      await prisma.refreshToken.create({
+        data: {
+          token: refreshToken,
+          userId: user.id,
+          expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        },
+      });
+      res.redirect(
+        `${config.frontendUrl}/auth/callback?accessToken=${accessToken}&refreshToken=${refreshToken}`
+      );
+    }
+  );
+} else {
+  router.get('/google', (_req, res) => res.status(503).json({ error: 'Google login is not configured' }));
+  router.get('/google/callback', (_req, res) => res.redirect(`${config.frontendUrl}/login?error=google_not_configured`));
+}
 
 export default router;

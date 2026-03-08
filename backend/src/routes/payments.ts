@@ -177,6 +177,37 @@ router.post(
   }
 );
 
+// Refund order (admin only; order must be IN_ESCROW or RELEASED)
+router.post(
+  '/:orderId/refund',
+  authenticate,
+  requireRole(Role.ADMIN),
+  async (req: AuthRequest, res: Response) => {
+    const order = await prisma.order.findUnique({
+      where: { id: req.params.orderId },
+      include: { auction: { select: { title: true } } },
+    });
+    if (!order) return res.status(404).json({ error: 'Order not found' });
+    if (!order.stripePaymentIntentId) {
+      return res.status(400).json({ error: 'Order has no payment to refund' });
+    }
+    if (order.status !== TransactionStatus.IN_ESCROW && order.status !== TransactionStatus.RELEASED) {
+      return res.status(400).json({ error: 'Only paid or released orders can be refunded' });
+    }
+    const amountCents = Math.round(Number(order.amount) * 100);
+    await stripe.refunds.create({
+      payment_intent: order.stripePaymentIntentId,
+      amount: amountCents,
+      reason: 'requested_by_customer',
+    });
+    await prisma.order.update({
+      where: { id: order.id },
+      data: { status: TransactionStatus.REFUNDED },
+    });
+    return res.json({ message: 'Order refunded', orderId: order.id });
+  }
+);
+
 // My orders (buyer)
 router.get('/orders', authenticate, async (req: AuthRequest, res: Response) => {
   const buyer = await prisma.buyer.findUnique({ where: { userId: req.authUser!.userId } });

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
 import { joinAuction, leaveAuction, onNewBid, offNewBid, onAuctionEnded, offAuctionEnded, onViewerCount, offViewerCount } from '@/lib/socket';
-import { bidsApi, watchlistApi } from '@/lib/api';
+import { bidsApi, watchlistApi, buyerApi } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -40,6 +40,14 @@ export function AuctionDetailClient({ initialAuction }: AuctionDetailClientProps
   const [countdown, setCountdown] = useState(timeLeft(initialAuction.endTime));
   const [viewerCount, setViewerCount] = useState(0);
   const [lastBidFlash, setLastBidFlash] = useState(false);
+  const [priceAlertMax, setPriceAlertMax] = useState('');
+  const [priceAlertSet, setPriceAlertSet] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      buyerApi.recentlyViewed.record(initialAuction.id).catch(() => {});
+    }
+  }, [user, initialAuction.id]);
 
   useEffect(() => {
     joinAuction(initialAuction.id, token);
@@ -129,6 +137,22 @@ export function AuctionDetailClient({ initialAuction }: AuctionDetailClientProps
     }
   };
 
+  const handleSetPriceAlert = async () => {
+    const max = Number(priceAlertMax);
+    if (!Number.isFinite(max) || max <= auction.currentBid) {
+      toast.addToast('Enter a max price above current bid.', 'error');
+      return;
+    }
+    try {
+      await buyerApi.priceAlerts.create(auction.id, max);
+      setPriceAlertSet(true);
+      setPriceAlertMax('');
+      toast.addToast('Price alert set. We’ll notify you if the bid stays at or below this.', 'success');
+    } catch (e) {
+      toast.addToast(e instanceof Error ? e.message : 'Failed to set alert', 'error');
+    }
+  };
+
   return (
     <div className="container py-8">
       <div className="grid lg:grid-cols-3 gap-8">
@@ -211,6 +235,35 @@ export function AuctionDetailClient({ initialAuction }: AuctionDetailClientProps
               )}
             </CardContent>
           </Card>
+
+          {user && auction.status === 'LIVE' && (
+            <Card className="rounded-xl border-border/80 shadow-gm-soft">
+              <CardHeader>
+                <CardTitle className="text-base">Price alert</CardTitle>
+                <p className="text-sm text-muted-foreground">Get notified if the bid stays at or below your max price.</p>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {priceAlertSet ? (
+                  <p className="text-sm text-primary font-medium">Price alert set.</p>
+                ) : (
+                  <>
+                    <div className="flex gap-2">
+                      <Input
+                        type="number"
+                        min={auction.currentBid}
+                        step={auction.minIncrement}
+                        value={priceAlertMax}
+                        onChange={(e) => setPriceAlertMax(e.target.value)}
+                        placeholder={`Max e.g. ${auction.currentBid + auction.minIncrement * 5}`}
+                        className="rounded-xl"
+                      />
+                      <Button variant="outline" onClick={handleSetPriceAlert} className="rounded-xl">Set alert</Button>
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           <Card>
             <CardHeader>
