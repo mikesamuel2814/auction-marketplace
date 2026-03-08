@@ -24,7 +24,7 @@ export default function DashboardPage() {
     if (!user) return;
     bidsApi.myBids().then(setBids).catch(() => setBids({ bids: [] }));
     paymentsApi.orders().then(setOrders).catch(() => setOrders({ orders: [] }));
-    notificationsApi.list({ limit: 10 }).then(setNotifications).catch(() => setNotifications({ notifications: [] }));
+    notificationsApi.list({ page: 1 }).then(setNotifications).catch(() => setNotifications({ notifications: [] }));
   }, [user, authLoading, router]);
 
   if (authLoading || !user) return <div className="container py-8">Loading...</div>;
